@@ -18,7 +18,7 @@ namespace DotnetExample.Controllers
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
 
-        private static readonly WeatherForecastModel[] Database = GetModels();
+        private static readonly List<WeatherForecastModel> Database = GetModels();
 
         private readonly ILogger<WeatherForecastController> _logger;
 
@@ -32,28 +32,88 @@ namespace DotnetExample.Controllers
         {
             return Database.Select(weatherForecast => new WeatherForecastResponseView
             {
+                Id = weatherForecast.Id,
                 Date = weatherForecast.Date,
                 TemperatureC = weatherForecast.TemperatureC,
                 Summary = weatherForecast.Summary
             });
         }
 
-        [HttpPost]
-        public string GetName()
+        [HttpGet("{id}")]
+        public WeatherForecastResponseView Get(string id)
         {
-            return "My name";
+            var model = Database.Find(item => item.Id == id);
+            if (model is null)
+            {
+                throw new ArgumentException("No model found!");
+            }
+
+            return new WeatherForecastResponseView
+            {
+                Id = model.Id,
+                Date = model.Date,
+                TemperatureC = model.TemperatureC,
+                Summary = model.Summary
+            };
         }
 
-        private static WeatherForecastModel[] GetModels()
+        [HttpDelete]
+        public WeatherForecastResponseView Delete(string id)
+        {
+            var model = Database.Find(item => item.Id == id);
+            if (model is null)
+            {
+                throw new ArgumentException("No model found!");
+            }
+
+            Database.Remove(model);
+
+            return new WeatherForecastResponseView
+            {
+                Id = model.Id,
+                Date = model.Date,
+                TemperatureC = model.TemperatureC,
+                Summary = model.Summary
+            };
+        }
+
+        [HttpPost]
+        public WeatherForecastResponseView Post(WeatherForecastRequestView entity)
+        {
+            var model = new WeatherForecastModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                Created = DateTime.Now,
+                Updated = DateTime.Now,
+                Date = entity.Date,
+                TemperatureC = entity.TemperatureC,
+                Summary = entity.Summary
+            };
+
+            Database.Add(model);
+            var existing = Database.Find(item => item.Id == model.Id);
+            return new WeatherForecastResponseView
+            {
+                Id = existing.Id,
+                Date = existing.Date,
+                TemperatureC = existing.TemperatureC,
+                Summary = existing.Summary
+            };
+        }
+
+        private static List<WeatherForecastModel> GetModels()
         {
             var rng = new Random();
             return Enumerable.Range(1, 5).Select(index => new WeatherForecastModel
                 {
+                    Id = Guid.NewGuid().ToString(),
+                    Created = DateTime.Now,
+                    Updated = DateTime.Now,
                     Date = DateTime.Now.AddDays(index),
                     TemperatureC = rng.Next(-20, 55),
                     Summary = Summaries[rng.Next(Summaries.Length)]
                 })
-               .ToArray();
+               .ToList();
         }
     }
 }
